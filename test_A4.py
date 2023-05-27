@@ -33,24 +33,34 @@ class TestEncriptar(unittest.TestCase):
             self.fail(
                 "Se levantó una excepción con un input que si se puede serializar")
 
-    def test_verificar_secuencia(self):
+    def test_verificar_secuencia_None(self):
+        mensaje = bytearray(b'\x00\x01\x02\x09')
+        self.assertIsNone(verificar_secuencia(mensaje, [1, 2]))
+    
+    def test_verificar_secuencia_maximo(self):
         mensaje = bytearray(b'\x00\x01\x02\x09')
         self.assertRaises(SequenceError, verificar_secuencia, mensaje, [2000])
+        
+    def test_verificar_secuencia_repetidos(self):
+        mensaje = bytearray(b'\x00\x01\x02\x09')
         self.assertRaises(SequenceError, verificar_secuencia, mensaje, [1, 1])
-        # Verificar que retorne None cuando todo es válido
-        self.assertIsNone(verificar_secuencia(mensaje, [1, 2]))
-
+        
     def test_codificar_secuencia(self):
         test_1 = codificar_secuencia([1, 2, 3])
         res_1 = bytearray(b'\x00\x01\x00\x02\x00\x03')
-        # Verificar tipo de dato pedido
-        self.assertIsInstance(test_1, bytearray)
-        # Verificar resultados
         self.assertEqual(test_1, res_1)
 
     def test_codificar_secuencia_2(self):
         test_2 = codificar_secuencia([11, 4242, 12])
         res_2 = bytearray(b'\x00\x0b\x10\x92\x00\x0c')
+        # Verificar tipo de dato pedido
+        self.assertIsInstance(test_2, bytearray)
+        # Verificar resultados
+        self.assertEqual(test_2, res_2)
+    
+    def test_codificar_secuencia_3(self):
+        test_2 = codificar_secuencia([4, 4444, 44])
+        res_2 = bytearray(b'\x00\x04\x11\\\x00,')
         # Verificar tipo de dato pedido
         self.assertIsInstance(test_2, bytearray)
         # Verificar resultados
@@ -87,22 +97,14 @@ class TestEncriptar(unittest.TestCase):
         self.assertIsInstance(res_2, list)
         # Verificar resultados
         self.assertListEqual(test_2, res_2)
-
-    def test_encriptar(self):
-        test_1 = encriptar(bytearray(b'\x00\x01\x02\x03\x05'), [1, 3])
-        res_1 = bytearray(b'\x00\x00\x00\x02\x01\x03\x00\x02\x05\x00\x01\x00\x03')
+    
+    def test_separar_msg_3(self):
+        test_2 = separar_msg(bytearray(b'\x00\x01\x02\x03'), [2, 1])
+        res_2 = [bytearray(b'\x02\x01'), bytearray(b'\x00\x03')]
         # Verificar tipo de dato pedido
-        self.assertIsInstance(res_1, bytearray)
+        self.assertIsInstance(res_2, list)
         # Verificar resultados
-        self.assertEqual(test_1, res_1)
-
-    def test_encriptar_2(self):
-        test_2 = encriptar(bytearray(b'\x10\x01\x02\x03\xAA'), [1, 0])
-        res_2 = bytearray(b'\x00\x00\x00\x02\x01\x10\x02\x03\xaa\x00\x01\x00\x00')
-        # Verificar tipo de dato pedido
-        self.assertIsInstance(res_2, bytearray)
-        # Verificar resultados
-        self.assertEqual(test_2, res_2)
+        self.assertListEqual(test_2, res_2)
 
 
 class TestDesencriptar(unittest.TestCase):
@@ -128,8 +130,8 @@ class TestDesencriptar(unittest.TestCase):
             self.fail("Se levantó una excepción con un input que si se puede deserializar")
 
     def test_decodificar_largo(self):
-        test_1 = decodificar_largo(bytearray(b'\x00\x00\x00\x02'))
-        res_1 = 2
+        test_1 = decodificar_largo(bytearray(b'\x00\x00\x00\x04'))
+        res_1 = 4
         # Verificar tipo de dato pedido
         self.assertIsInstance(test_1, int)
         # Verificar resultados
@@ -144,25 +146,38 @@ class TestDesencriptar(unittest.TestCase):
         self.assertEqual(test_2, res_2)
 
     def test_separar_msg_encriptado(self):
-        test_1 = separar_msg_encriptado(
-            bytearray(b'\x00\x00\x00\x02\x01\x03\x00\x02\x08\x00\x01\x00\x03'))
+        def new_decodificar_largo(*args, **kwargs):
+            return 2
 
-        res_1 = [bytearray(b'\x01\x03'), bytearray(
-            b'\x00\x02\x08'), bytearray(b'\x00\x01\x00\x03')]
-        # Verificar tipo de dato pedido
-        self.assertIsInstance(res_1, list)
-        # Verificar resultados
-        self.assertListEqual(test_1, res_1)
+        with patch('desencriptar.decodificar_largo', side_effect=new_decodificar_largo):
+            test = separar_msg_encriptado(
+                bytearray(b'\x00\x00\x00\x02\x01\x03\x00\x02\x08\x00\x01\x00\x03'))
+            res = [
+                bytearray(b'\x01\x03'), 
+                bytearray(b'\x00\x02\x08'), 
+                bytearray(b'\x00\x01\x00\x03')
+                ]
+            # Verificar tipo de dato pedido
+            self.assertIsInstance(res, list)
+            # Verificar resultados
+            self.assertListEqual(test, res)
 
     def test_separar_msg_encriptado_2(self):
-        test_2 = separar_msg_encriptado(
-            bytearray(b'\x00\x00\x00\x01\x05\x00\x01\x02\xAA\x00\x03'))
-        res_2 = [bytearray(b'\x05'), bytearray(
-            b'\x00\x01\x02\xAA'), bytearray(b'\x00\x03')]
-        # Verificar tipo de dato pedido
-        self.assertIsInstance(res_2, list)
-        # Verificar resultados
-        self.assertListEqual(test_2, res_2)
+        def decodificar_largo(*args, **kwargs):
+            return 1
+
+        with patch('desencriptar.decodificar_largo', side_effect=decodificar_largo):
+            test = separar_msg_encriptado(
+                bytearray(b'\x00\x00\x00\x01\x05\x00\x01\x02\xAA\x00\x03'))
+            res = [
+                bytearray(b'\x05'), 
+                bytearray(b'\x00\x01\x02\xAA'), 
+                bytearray(b'\x00\x03')
+                ]
+            # Verificar tipo de dato pedido
+            self.assertIsInstance(res, list)
+            # Verificar resultados
+            self.assertListEqual(test, res)
 
     def test_decodificar_secuencia(self):
         test_1 = decodificar_secuencia(bytearray(b'\x00\x01\x00\x02\x00\x03'))
@@ -179,35 +194,78 @@ class TestDesencriptar(unittest.TestCase):
         self.assertIsInstance(res_2, list)
         # Verificar resultados
         self.assertListEqual(test_2, res_2)
+    
+    def test_decodificar_secuencia_3(self):
+        test = decodificar_secuencia(bytearray(b'\x10\x92'))
+        res = [4242]
+        # Verificar tipo de dato pedido
+        self.assertIsInstance(res, list)
+        # Verificar resultados
+        self.assertListEqual(test, res)
 
     def test_desencriptar(self):
-        test_1 = desencriptar(
-            bytearray(b'\x00\x00\x00\x02\x01\x03\x00\x02\x05\x00\x01\x00\x03'))
-        test_2 = desencriptar(
-            bytearray(b'\x00\x00\x00\x01\x03\x00\x01\x02\xAA\x00\x03'))
-        res_1 = bytearray(b'\x00\x01\x02\x03\x05')
-        res_2 = bytearray(b'\x00\x01\x02\x03\xAA')
-
-        # Verificar tipo de dato pedido
-        self.assertIsInstance(res_1, bytearray)
-        # Verificar resultados
-        self.assertEqual(test_1, res_1)
-        self.assertEqual(test_2, res_2)
+        def separar_msg_encriptado(*args, **kwargs):
+            return [bytearray(b'\x01\x03'), 
+                    bytearray(b'\x00\x02\x05'), 
+                    bytearray(b'\x00\x01\x00\x03')]
+        
+        def decodificar_secuencia(*args, **kwargs):
+            return [1, 3]
+        
+        with patch('desencriptar.separar_msg_encriptado', side_effect=separar_msg_encriptado):
+            with patch('desencriptar.decodificar_secuencia', side_effect=decodificar_secuencia):
+                test_1 = desencriptar(
+                    bytearray(b'\x00\x00\x00\x02\x01\x03\x00\x02\x05\x00\x01\x00\x03'))
+                res_1 = bytearray(b'\x00\x01\x02\x03\x05')
+                # Verificar tipo de dato pedido
+                self.assertIsInstance(res_1, bytearray)
+                # Verificar resultados
+                self.assertEqual(test_1, res_1)
 
     def test_desencriptar_2(self):
-        test_1 = desencriptar(
-            bytearray(b'\x00\x00\x00\x04abcdefghijklmn\x00\x02\x00\x03\x00\n\x00\x0c'))
-        test_2 = desencriptar(bytearray(
-            b'\x00\x00\x00\x05mata123\x00\x02\x00\x01\x00\x00\x00\x03\x00\x04'))
-        res_1 = bytearray(b'efabghijklcmdn')
-        res_2 = bytearray(b'tama123')
+        def separar_msg_encriptado(*args, **kwargs):
+            return [bytearray(b'abcd'), 
+                    bytearray(b'efghijklmn'), 
+                    bytearray(b'\x00\x02\x00\x03\x00\n\x00\x0c')]
+        
+        def decodificar_secuencia(*args, **kwargs):
+            return [2, 3, 10, 12]
+        
+        with patch('desencriptar.separar_msg_encriptado', side_effect=separar_msg_encriptado):
+            with patch('desencriptar.decodificar_secuencia', side_effect=decodificar_secuencia):
+                test_1 = desencriptar(
+                    bytearray(b'\x00\x00\x00\x04abcdefghijklmn\x00\x02\x00\x03\x00\n\x00\x0c'))
+                res_1 = bytearray(b'efabghijklcmdn')
+                # Verificar tipo de dato pedido
+                self.assertIsInstance(res_1, bytearray)
+                # Verificar resultados
+                self.assertEqual(test_1, res_1)
+    
 
+class TestIntegracion(unittest.TestCase):
+
+    def test_integracion_encriptar(self):
+        test_1 = encriptar(bytearray(b'\x00\x01\x02\x03\x05'), [1, 3])
+        res_1 = bytearray(b'\x00\x00\x00\x02\x01\x03\x00\x02\x05\x00\x01\x00\x03')
         # Verificar tipo de dato pedido
         self.assertIsInstance(res_1, bytearray)
         # Verificar resultados
         self.assertEqual(test_1, res_1)
-        self.assertEqual(test_2, res_2)
+    
+    def test_integracion_desencriptar(self):
+        test = bytearray(b'\x00\x00\x00\x05mata123\x00\x02\x00\x01\x00\x00\x00\x03\x00\x04')
+        test = desencriptar(test)
+        res = bytearray(b'tama123')
+        self.assertIsInstance(res, bytearray)
+        self.assertEqual(test, res)
 
+    def test_integracion_todo_proceso(self):
+        original = {"tama": 1}
+        serializado = serializar_diccionario({"tama": 1})
+        encriptado = encriptar(serializado, [1, 5, 10, 3])
+        desencriptado = desencriptar(encriptado)
+        deserializado = deserializar_diccionario(desencriptado)
+        self.assertDictEqual(original, deserializado)
 
 if __name__ == '__main__':
     with patch('sys.stdout', new=StringIO()):

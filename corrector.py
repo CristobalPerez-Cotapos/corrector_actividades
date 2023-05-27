@@ -11,7 +11,13 @@ def corrector_de_actividades(actividad, archivo_a_buscar):
     carpeta_de_repositorios = actividad
     estudiantes = os.listdir(carpeta_de_repositorios)
     # eliminamos el .git
-    estudiantes.remove(".git")
+    if ".git" in estudiantes:
+        estudiantes.remove(".git")
+    if not os.path.exists("resultados.xlsx"):
+        wb = openpyxl.Workbook()
+        ws = wb.create_sheet("Hoja1")
+        wb.save('resultados.xlsx')
+    
     wb = openpyxl.load_workbook("resultados.xlsx")
     ws = wb["Hoja1"]
 
@@ -70,7 +76,8 @@ def recolectar_resultados(actividad):
     carpeta_de_repositorios = actividad
     estudiantes = os.listdir(carpeta_de_repositorios)
     # eliminamos el .git
-    estudiantes.remove(".git")
+    if ".git" in estudiantes:
+        estudiantes.remove(".git")
     os.makedirs(f"resultados {actividad}", exist_ok=True)
     for estudiante in estudiantes:
         for path, _, f in os.walk(os.path.join(carpeta_de_repositorios, estudiante)):
