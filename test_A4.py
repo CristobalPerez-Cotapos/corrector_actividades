@@ -138,8 +138,8 @@ class TestDesencriptar(unittest.TestCase):
         self.assertEqual(test_1, res_1)
 
     def test_decodificar_largo_2(self):
-        test_2 = decodificar_largo(bytearray(b'\xA0\xA0\x11\xA1'))
-        res_2 = 2694844833
+        test_2 = decodificar_largo(bytearray(b'\x00\x00\x11\x5C'))
+        res_2 = 4444
         # Verificar tipo de dato pedido
         self.assertIsInstance(test_2, int)
         # Verificar resultados
