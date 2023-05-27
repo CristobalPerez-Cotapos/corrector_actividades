@@ -3,10 +3,11 @@ import subprocess
 import openpyxl
 import shutil
 
-actividad = "A1"
+actividad = "A4"
+archivo_a_buscar = "encriptar.py"
 
 
-def corrector_de_actividades(actividad):
+def corrector_de_actividades(actividad, archivo_a_buscar):
     carpeta_de_repositorios = actividad
     estudiantes = os.listdir(carpeta_de_repositorios)
     # eliminamos el .git
@@ -22,9 +23,12 @@ def corrector_de_actividades(actividad):
         estudiante_dir = os.path.join(carpeta_de_repositorios, estudiante)
         for path, _, f in os.walk(estudiante_dir):
             for file in f:
-                if file.lower() == "clases.py":  # NOMBRE DEL ARCHIVO A BUSCAR
-                    file_path = os.path.join(path, "test.py")
-                    shutil.copy("test.py", file_path)
+                if file.lower() == archivo_a_buscar:  # NOMBRE DEL ARCHIVO A BUSCAR
+                    file_path = os.path.join(path, f"test_{actividad}.py")
+                    shutil.copy(f"test_{actividad}.py", file_path)
+
+                    file_path = os.path.join(path, f"errors.py")
+                    shutil.copy(f"errors.py", file_path)
                     estudiantes_paths[estudiante] = path
 
     print("Ya se copiaron los archivos de test.py a cada carpeta de estudiante")
@@ -35,7 +39,7 @@ def corrector_de_actividades(actividad):
         estudiante_dir = estudiantes_paths[estudiante]
         os.chdir(estudiante_dir)
         subprocess.run(
-            'python3 -m unittest discover -p "test.py" -b 2>&1 | grep "." >> resultados.txt',
+            f'python3 -m unittest discover -p "test_{actividad}.py" -b 2>&1 | grep "." >> resultados.txt',
             shell=True,
         )
         os.chdir(original_path)
@@ -81,5 +85,5 @@ def recolectar_resultados(actividad):
 
 
 if __name__ == "__main__":
-    corrector_de_actividades(actividad)
+    corrector_de_actividades(actividad, archivo_a_buscar)
     recolectar_resultados(actividad)
