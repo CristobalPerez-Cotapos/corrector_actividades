@@ -3,8 +3,11 @@ import subprocess
 import openpyxl
 import shutil
 
-actividad = "A4"
-archivo_a_buscar = "encriptar.py"
+actividad = "AB"
+archivo_a_buscar = "yolanda.py" # Va a ir al repo del alumno y va a seguir 
+                                # ingresando a las carpetas hasta encontrar este archivo
+
+archivos_a_agregar = ["api.py", f"test_{actividad}.py"]
 
 
 def corrector_de_actividades(actividad, archivo_a_buscar):
@@ -30,11 +33,9 @@ def corrector_de_actividades(actividad, archivo_a_buscar):
         for path, _, f in os.walk(estudiante_dir):
             for file in f:
                 if file.lower() == archivo_a_buscar:  # NOMBRE DEL ARCHIVO A BUSCAR
-                    file_path = os.path.join(path, f"test_{actividad}.py")
-                    shutil.copy(f"test_{actividad}.py", file_path)
+                    for archivo in archivos_a_agregar:
+                        agregar_archivo(path, archivo)
 
-                    file_path = os.path.join(path, f"errors.py")
-                    shutil.copy(f"errors.py", file_path)
                     estudiantes_paths[estudiante] = path
 
     print("Ya se copiaron los archivos de test.py a cada carpeta de estudiante")
@@ -90,6 +91,10 @@ def recolectar_resultados(actividad):
                     shutil.move(archivo_a_mover, destino)
     print("Resultados recolectados")
 
+
+def agregar_archivo(path, archivo_a_agregar):
+    file_path = os.path.join(path, archivo_a_agregar)
+    shutil.copy(archivo_a_agregar, file_path)
 
 if __name__ == "__main__":
     corrector_de_actividades(actividad, archivo_a_buscar)
